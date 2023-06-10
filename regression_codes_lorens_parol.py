@@ -28,7 +28,7 @@ pd.set_option("display.max_columns", 500)
 
 ############################################################################################################
 
-df_test = pd.read_csv('/Users/polaparol/Documents/DS-sem2/Machine-Learning/Regression/newborn_test.csv')
+df_test = pd.read_csv('newborn_test.csv')
 
 ############################################################################################################
 ###### TEST DATASET #################
@@ -36,7 +36,9 @@ df_test = pd.read_csv('/Users/polaparol/Documents/DS-sem2/Machine-Learning/Regre
 
 df_test['mother_body_mass_index'] = np.where(df_test['mother_body_mass_index'].isnull(), ((df_test['mother_delivery_weight'] - df_test['mother_weight_gain']) / (df_test['mother_height'] ** 2)) * 703, df_test['mother_body_mass_index'])
 NA_mother_BMI = df_test['mother_body_mass_index'].isna().sum()
-df_test = df_test[(df_test['mother_body_mass_index'] >= 15) & (df_test['mother_body_mass_index'] <= 40)]
+df_test['mother_body_mass_index'] = df_test['mother_body_mass_index'].clip(lower=15, upper=40)
+mean_BMI = df_test['mother_body_mass_index'].mean()
+df_test['mother_body_mass_index'] = df_test['mother_body_mass_index'].fillna(mean_BMI)
 df_test.loc[:, 'mother_marital_status'] = df_test['mother_marital_status'].fillna('unknown')
 df_test['mother_delivery_weight'] = np.where(
     df_test['mother_delivery_weight'].isnull() & np.isfinite(df_test['mother_height']) & np.isfinite(df_test['mother_weight_gain']) & np.isfinite(df_test['mother_body_mass_index']),
@@ -52,6 +54,7 @@ df_test['mother_height'] = np.where(
     np.sqrt((df_test['mother_delivery_weight'] - df_test['mother_weight_gain']) / (df_test['mother_body_mass_index'] / 703)),
     df_test['mother_height']
 )
+df_test['mother_height'] = df_test['mother_height'].clip(upper=55)
 df_test['mother_height'] = df_test['mother_height'].fillna(mean_mother_height)
 mean_mother_weight_gain = df_test['mother_weight_gain'].mean()
 median_mother_weight_gain = df_test['mother_weight_gain'].median()
@@ -61,8 +64,10 @@ df_test['mother_weight_gain'] = np.where(df_test['mother_weight_gain'].isnull(),
 df_test = df_test.drop('weight_gain_ratio', axis=1)
 mean_father_age = df_test['father_age'].mean()
 median_father_age = df_test['father_age'].median()
+df_test['father_age'] = df_test['father_age'].fillna(mean_father_age)
 mean_cigarettes_before_pregnancy = df_test['cigarettes_before_pregnancy'].mean()
 median_cigarettes_before_pregnancy = df_test['cigarettes_before_pregnancy'].median()
+df_test['cigarettes_before_pregnancy'] = df_test['cigarettes_before_pregnancy'].fillna(median_cigarettes_before_pregnancy)
 df_test['prenatal_care_month'] = df_test['prenatal_care_month'].replace(99, 0)
 mean_number_prenatal_visits = df_test['number_prenatal_visits'].mean()
 df_test['number_prenatal_visits'] = df_test['number_prenatal_visits'].fillna(mean_number_prenatal_visits)
@@ -89,14 +94,13 @@ one_hot_encoded_cesarean = one_hot_encoded_cesarean.rename(columns={'N': 'no_ces
 df_test = pd.concat([df_test, one_hot_encoded_cesarean], axis=1)
 df_test = df_test.replace({True: 1, False: 0})
 df_test = df_test.drop('previous_cesarean', axis=1)
-df_test = df_test.dropna()
 df_test['newborn_weight'] = 0
 
 
 ############################################################################################################
 ###### TRAIN DATASET #################
 ############################################################################################################
-df_train = pd.read_csv('/Users/polaparol/Documents/DS-sem2/Machine-Learning/Regression/newborn_train.csv')
+df_train = pd.read_csv('newborn_train.csv')
 
 # data cleaning
 
@@ -199,8 +203,8 @@ y_pred = xgb_model.predict(X_test)
 
 df_test_pred = df_test.copy()
 df_test_pred["newborn_weight_pred"] = y_pred
-df_test_pred.to_csv('newborn_test_pred.csv', index=False)
-
+df_test_pred.to_csv('newborn_test_pred_full.csv', index=False)
+df_test_pred[["newborn_weight_pred"]].to_csv('newborn_test_pred_values.csv', index=False)
 
 
 
